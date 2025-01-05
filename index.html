@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Moviezzie</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet">
+      <style>
+            :root {
+                  --glass-bg: rgba(255, 255, 255, 0.1);
+                  --glass-border: rgba(255, 255, 255, 0.2);
+            }
+
+            body {
+                  font-family: 'Outfit', sans-serif;
+                  background: linear-gradient(135deg, #1a1c20 0%, #0f1012 100%);
+                  min-height: 100vh;
+            }
+
+            .glass-morphic {
+                  background: var(--glass-bg);
+                  backdrop-filter: blur(10px);
+                  border: 1px solid var(--glass-border);
+                  border-radius: 20px;
+            }
+
+            .glass-button {
+                  background: var(--glass-bg);
+                  backdrop-filter: blur(5px);
+                  border: 1px solid var(--glass-border);
+                  border-radius: 10px;
+                  transition: all 0.3s ease;
+            }
+
+            .glass-button:hover {
+                  background: rgba(255, 255, 255, 0.15);
+                  transform: translateY(-2px);
+            }
+
+            .glass-input {
+                  background: var(--glass-bg);
+                  backdrop-filter: blur(5px);
+                  border: 1px solid var(--glass-border);
+                  border-radius: 10px;
+                  transition: all 0.3s ease;
+            }
+
+            .glass-input:focus {
+                  border-color: #8b5cf6;
+                  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+            }
+
+            .active-item {
+                  background: rgba(139, 92, 246, 0.3);
+                  border-color: rgba(139, 92, 246, 0.5);
+            }
+
+            .loader {
+                  border: 4px solid rgba(255, 255, 255, 0.1);
+                  border-top: 4px solid #8b5cf6;
+                  border-radius: 50%;
+                  width: 40px;
+                  height: 40px;
+                  animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                  0% {
+                        transform: rotate(0deg);
+                  }
+
+                  100% {
+                        transform: rotate(360deg);
+                  }
+            }
+
+            .scroll-hidden::-webkit-scrollbar {
+                  display: none;
+            }
+
+            .toggle-switch {
+                  width: 60px;
+                  height: 30px;
+                  position: relative;
+                  display: inline-block;
+            }
+
+            .toggle-switch input {
+                  opacity: 0;
+                  width: 0;
+                  height: 0;
+            }
+
+            .toggle-slider {
+                  position: absolute;
+                  cursor: pointer;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  bottom: 0;
+                  background-color: rgba(255, 255, 255, 0.1);
+                  transition: .4s;
+                  border-radius: 34px;
+            }
+
+            .toggle-slider:before {
+                  position: absolute;
+                  content: "";
+                  height: 22px;
+                  width: 22px;
+                  left: 4px;
+                  bottom: 4px;
+                  background-color: #8b5cf6;
+                  transition: .4s;
+                  border-radius: 50%;
+            }
+
+            input:checked+.toggle-slider {
+                  background-color: rgba(139, 92, 246, 0.3);
+            }
+
+            input:checked+.toggle-slider:before {
+                  transform: translateX(30px);
+            }
+
+            .modal-enter {
+                  animation: modal-in 0.3s ease-out;
+            }
+
+            @keyframes modal-in {
+                  from {
+                        opacity: 0;
+                        transform: translateY(-20px);
+                  }
+
+                  to {
+                        opacity: 1;
+                        transform: translateY(0);
+                  }
+            }
+
+            .fade-enter {
+                  animation: fade-in 0.2s ease-out;
+            }
+
+            @keyframes fade-in {
+                  from {
+                        opacity: 0;
+                  }
+
+                  to {
+                        opacity: 1;
+                  }
+            }
+      </style>
+</head>
+
+<body class="text-gray-200 p-4" x-data="mediaApp()">
+      <!-- Navigation -->
+      <nav class="glass-morphic p-4 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div class="flex items-center gap-6">
+                        <h1
+                              class="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                              Moviezzie
+                        </h1>
+                        <label class="toggle-switch">
+                              <input type="checkbox" x-model="isTV" @change="toggleMediaType">
+                              <span class="toggle-slider"></span>
+                        </label>
+                        <span class="text-sm" x-text="isTV ? 'TV Shows' : 'Movies'"></span>
+                  </div>
+                  <div class="w-full md:w-1/2">
+                        <div class="relative">
+                              <input type="search" :placeholder="'Search ' + (isTV ? 'TV shows' : 'movies') + '...'"
+                                    class="w-full px-4 py-2 glass-input focus:outline-none" x-model="searchQuery"
+                                    @input.debounce.300ms="searchMedia">
+                              <button class="absolute right-3 top-2.5 text-purple-500">
+                                    <i class="bi bi-search"></i>
+                              </button>
+                        </div>
+                  </div>
+                  <div class="flex space-x-4">
+                        <button class="glass-button p-3 text-purple-500" @click="showFilterModal = true">
+                              <i class="bi bi-funnel"></i>
+                        </button>
+                        <button class="glass-button p-3 text-purple-500" @click="showWishlist = !showWishlist">
+                              <i class="bi" :class="showWishlist ? 'bi-heart-fill' : 'bi-heart'"></i>
+                        </button>
+                        <button class="glass-button p-3 text-purple-500" @click="showSettings = !showSettings">
+                              <i class="bi bi-gear"></i>
+                        </button>
+                        <button class="glass-button p-3 text-purple-500">
+                              <i class="bi bi-person-circle"></i>
+                        </button>
+                  </div>
+            </div>
+      </nav>
+
+      <!-- Genres -->
+      <div class="glass-morphic p-4 mb-8 overflow-x-auto scroll-hidden">
+            <div class="flex gap-3 min-w-max">
+                  <template x-for="genre in genres" :key="genre.id">
+                        <button class="glass-button px-6 py-2" :class="selectedGenre === genre.id ? 'active-item' : ''"
+                              @click="selectGenre(genre.id)" x-text="genre.name">
+                        </button>
+                  </template>
+            </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="flex justify-center my-8" x-show="loading">
+            <div class="loader"></div>
+      </div>
+
+      <!-- Media Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" x-show="!loading">
+            <template x-for="item in displayedMedia" :key="item.id">
+                  <div class="glass-morphic p-4 transform hover:scale-105 transition-transform duration-300">
+                        <div class="relative group">
+                              <img :src="item.poster_path ? 'https://image.tmdb.org/t/p/w500' + item.poster_path : 'https://via.placeholder.com/500x750?text=No+Image'"
+                                    :alt="item.title || item.name"
+                                    class="w-full h-64 object-cover rounded-lg cursor-pointer"
+                                    @click="showDetails(item)">
+                              <div
+                                    class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
+                                    <div class="text-center p-4">
+                                          <p class="text-sm" x-text="item.overview?.substring(0, 100) + '...'"></p>
+                                          <button class="glass-button mt-4 px-4 py-2 text-purple-500"
+                                                @click="showDetails(item)">
+                                                More Info
+                                          </button>
+                                    </div>
+                              </div>
+                              <button class="absolute top-2 right-2 glass-button p-2" @click="toggleWishlist(item)">
+                                    <i class="bi text-purple-500"
+                                          :class="isInWishlist(item.id) ? 'bi-heart-fill' : 'bi-heart'"></i>
+                              </button>
+                        </div>
+                        <div class="mt-4">
+                              <h3 class="text-lg font-semibold text-purple-500" x-text="item.title || item.name"></h3>
+                              <div class="flex items-center mt-2">
+                                    <div class="flex text-purple-500" x-html="getRatingStars(item.vote_average/2)">
+                                    </div>
+                                    <span class="ml-2" x-text="(item.vote_average/2).toFixed(1)"></span>
+                              </div>
+                              <p class="text-sm text-gray-400 mt-2" x-text="item.release_date || item.first_air_date">
+                              </p>
+                        </div>
+                  </div>
+            </template>
+      </div>
+
+      <!-- Details Modal -->
+      <div class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50"
+            x-show="selectedItem" @click.self="selectedItem = null" x-transition:enter="fade-enter">
+            <div class="glass-morphic p-6 max-w-4xl max-h-[90vh] overflow-y-auto m-4 modal-enter" x-show="selectedItem">
+                  <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-2xl font-bold text-purple-500"
+                              x-text="selectedItem?.title || selectedItem?.name"></h2>
+                        <button @click="selectedItem = null" class="text-gray-400 hover:text-white">
+                              <i class="bi bi-x-lg"></i>
+                        </button>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <img :src="selectedItem?.poster_path ? 'https://image.tmdb.org/t/p/w500' + selectedItem.poster_path : 'https://via.placeholder.com/500x750?text=No+Image'"
+                              :alt="selectedItem?.title || selectedItem?.name" class="w-full rounded-lg">
+                        <div>
+                              <p class="mb-4" x-text="selectedItem?.overview"></p>
+                              <div class="space-y-2">
+                                    <p><span class="font-semibold text-purple-500">Release Date:</span>
+                                          <span
+                                                x-text="selectedItem?.release_date || selectedItem?.first_air_date"></span>
+                                    </p>
+                                    <p><span class="font-semibold text-purple-500">Rating:</span>
+                                          <span x-text="selectedItem?.vote_average?.toFixed(1) + '/10'"></span>
+                                    </p>
+                                    <p><span class="font-semibold text-purple-500">Popularity:</span>
+                                          <span x-text="selectedItem?.popularity?.toFixed(0)"></span>
+                                    </p>
+                                    <template x-if="cast.length > 0">
+                                          <div>
+                                                <h3 class="font-semibold text-purple-500 mb-2">Cast</h3>
+                                                <div class="flex flex-wrap gap-2">
+                                                      <template x-for="actor in cast.slice(0, 5)" :key="actor.id">
+                                                            <span class="glass-button px-3 py-1 text-sm"
+                                                                  x-text="actor.name"></span>
+                                                      </template>
+                                                </div>
+                                          </div>
+                                    </template>
+                              </div>
+                        </div>
+                  </div>
+            </div>
+      </div>
+
+      <!-- Settings Modal -->
+      <div class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50"
+            x-show="showSettings" @click.self="showSettings = false" x-transition:enter="fade-enter">
+            <div class="glass-morphic p-6 w-96 modal-enter">
+                  <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-purple-500">Settings</h3>
+                        <button @click="showSettings = false" class="text-gray-400 hover:text-white">
+                              <i class="bi bi-x-lg"></i>
+                        </button>
+                  </div>
+                  <div class="space-y-4">
+                        <div>
+                              <label class="block mb-2">API Key</label>
+                              <input type="password" class="glass-input w-full p-2" x-model="settings.apiKey"
+                                    placeholder="Enter TMDB API Key">
+                        </div>
+                        <div>
+                              <label class="block mb-2">Language</label>
+                              <select class="glass-input w-full p-2" x-model="settings.language">
+                                    <option value="en-US">English</option>
+                                    <option value="es-ES">Spanish</option>
+                                    <option value="fr-FR">French</option>
+                              </select>
+                        </div>
+                        <div>
+                              <label class="block mb-2">Adult Content</label>
+                              <label class="toggle-switch">
+                                    <input type="checkbox" x-model="settings.includeAdult">
+                                    <span class="toggle-slider"></span>
+                              </label>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                              <button class="glass-button px-4 py-2 text-purple-500"
+                                    @click="resetSettings()">Reset</button>
+                              <button class="glass-button px-4 py-2 text-purple-500"
+                                    @click="saveSettings()">Save</button>
+                        </div>
+                  </div>
+            </div>
+      </div>
+
+      <!-- Filter Modal -->
+      <div class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50"
+            x-show="showFilterModal" @click.self="showFilterModal = false" x-transition:enter="fade-enter">
+            <div class="glass-morphic p-6 w-96 modal-enter">
+                  <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-purple-500">Filter</h3>
+                        <button @click="showFilterModal = false" class="text-gray-400 hover:text-white">
+                              <i class="bi bi-x-lg"></i>
+                        </button>
+                  </div>
+                  <div class="space-y-4">
+                        <div>
+                              <label class="block mb-2">Minimum Rating</label>
+                              <input type="range" min="0" max="5" step="0.5" class="w-full accent-purple-500"
+                                    x-model="filters.minRating">
+                              <span x-text="filters.minRating + ' stars'"></span>
+                        </div>
+                        <div>
+                              <label class="block mb-2">Year</label>
+                              <select class="glass-input w-full p-2" x-model="filters.year">
+                                    <option value="">All Time</option>
+                                    <template x-for="year in years" :key="year">
+                                          <option :value="year" x-text="year"></option>
+                                    </template>
+                              </select>
+                        </div>
+                        <div>
+                              <label class="block mb-2">Sort By</label>
+                              <select class="glass-input w-full p-2" x-model="filters.sortBy">
+                                    <option value="popularity.desc">Popularity</option>
+                                    <option value="vote_average.desc">Rating</option>
+                                    <option value="release_date.desc">Release Date</option>
+                              </select>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                              <button class="glass-button px-4 py-2 text-purple-500"
+                                    @click="resetFilters()">Reset</button>
+                              <button class="glass-button px-4 py-2 text-purple-500"
+                                    @click="applyFilters()">Apply</button>
+                        </div>
+                  </div>
+            </div>
+      </div>
+
+      <script>
+            function mediaApp() {
+                  return {
+                        apiKey: 'ec605eefd096bce09dc7457f4616c05f',
+                        isTV: false,
+                        media: [],
+                        genres: [],
+                        cast: [],
+                        loading: true,
+                        searchQuery: '',
+                        selectedGenre: null,
+                        selectedItem: null,
+                        showFilterModal: false,
+                        showWishlist: false,
+                        showSettings: false,
+                        wishlist: JSON.parse(localStorage.getItem('wishlist') || '[]'),
+                        settings: {
+                              apiKey: localStorage.getItem('apiKey') || 'ec605eefd096bce09dc7457f4616c05f',
+                              language: localStorage.getItem('language') || 'en-US',
+                              includeAdult: JSON.parse(localStorage.getItem('includeAdult') || 'false')
+                        },
+                        filters: {
+                              minRating: 0,
+                              year: '',
+                              sortBy: 'popularity.desc'
+                        },
+                        years: Array.from({ length: 24 }, (_, i) => 2024 - i),
+
+                        async init() {
+                              await this.fetchGenres();
+                              await this.fetchMedia();
+                        },
+
+                        get mediaType() {
+                              return this.isTV ? 'tv' : 'movie';
+                        },
+
+                        async fetchGenres() {
+                              try {
+                                    const response = await fetch(
+                                          `https://api.themoviedb.org/3/genre/${this.mediaType}/list?api_key=${this.settings.apiKey}&language=${this.settings.language}`
+                                    );
+                                    const data = await response.json();
+                                    this.genres = data.genres;
+                              } catch (error) {
+                                    console.error('Error fetching genres:', error);
+                              }
+                        },
+
+                        async fetchMedia() {
+                              this.loading = true;
+                              try {
+                                    let url = `https://api.themoviedb.org/3/discover/${this.mediaType}?api_key=${this.settings.apiKey}&language=${this.settings.language}&include_adult=${this.settings.includeAdult}`;
+                                    if (this.selectedGenre) url += `&with_genres=${this.selectedGenre}`;
+                                    if (this.filters.year) url += `&year=${this.filters.year}`;
+                                    url += `&sort_by=${this.filters.sortBy}`;
+
+                                    const response = await fetch(url);
+                                    const data = await response.json();
+                                    this.media = data.results;
+                              } catch (error) {
+                                    console.error('Error fetching media:', error);
+                              } finally {
+                                    this.loading = false;
+                              }
+                        },
+
+                        async searchMedia() {
+                              if (!this.searchQuery) {
+                                    await this.fetchMedia();
+                                    return;
+                              }
+
+                              this.loading = true;
+                              try {
+                                    const response = await fetch(
+                                          `https://api.themoviedb.org/3/search/${this.mediaType}?api_key=${this.settings.apiKey}&language=${this.settings.language}&query=${this.searchQuery}&include_adult=${this.settings.includeAdult}`
+                                    );
+                                    const data = await response.json();
+                                    this.media = data.results;
+                              } catch (error) {
+                                    console.error('Error searching media:', error);
+                              } finally {
+                                    this.loading = false;
+                              }
+                        },
+
+                        async showDetails(item) {
+                              this.selectedItem = item;
+                              try {
+                                    const response = await fetch(
+                                          `https://api.themoviedb.org/3/${this.mediaType}/${item.id}/credits?api_key=${this.settings.apiKey}&language=${this.settings.language}`
+                                    );
+                                    const data = await response.json();
+                                    this.cast = data.cast || [];
+                              } catch (error) {
+                                    console.error('Error fetching cast:', error);
+                                    this.cast = [];
+                              }
+                        },
+
+                        async toggleMediaType() {
+                              this.selectedGenre = null;
+                              await this.fetchGenres();
+                              await this.fetchMedia();
+                        },
+
+                        async selectGenre(genreId) {
+                              this.selectedGenre = this.selectedGenre === genreId ? null : genreId;
+                              await this.fetchMedia();
+                        },
+
+                        getRatingStars(rating) {
+                              let stars = '';
+                              for (let i = 1; i <= 5; i++) {
+                                    if (i <= rating) {
+                                          stars += '<i class="bi bi-star-fill"></i>';
+                                    } else if (i - 0.5 <= rating) {
+                                          stars += '<i class="bi bi-star-half"></i>';
+                                    } else {
+                                          stars += '<i class="bi bi-star"></i>';
+                                    }
+                              }
+                              return stars;
+                        },
+
+                        toggleWishlist(item) {
+                              const index = this.wishlist.findIndex(i => i.id === item.id);
+                              if (index === -1) {
+                                    this.wishlist.push(item);
+                              } else {
+                                    this.wishlist.splice(index, 1);
+                              }
+                              localStorage.setItem('wishlist', JSON.stringify(this.wishlist));
+                        },
+
+                        isInWishlist(itemId) {
+                              return this.wishlist.some(item => item.id === itemId);
+                        },
+
+                        saveSettings() {
+                              localStorage.setItem('apiKey', this.settings.apiKey);
+                              localStorage.setItem('language', this.settings.language);
+                              localStorage.setItem('includeAdult', this.settings.includeAdult);
+                              this.showSettings = false;
+                              this.fetchMedia();
+                        },
+
+                        resetSettings() {
+                              this.settings = {
+                                    apiKey: 'ec605eefd096bce09dc7457f4616c05f',
+                                    language: 'en-US',
+                                    includeAdult: false
+                              };
+                        },
+
+                        get displayedMedia() {
+                              let filtered = this.showWishlist ? this.wishlist : this.media;
+
+                              if (this.filters.minRating > 0) {
+                                    filtered = filtered.filter(item => (item.vote_average / 2) >= this.filters.minRating);
+                              }
+
+                              return filtered;
+                        },
+
+                        resetFilters() {
+                              this.filters = {
+                                    minRating: 0,
+                                    year: '',
+                                    sortBy: 'popularity.desc'
+                              };
+                        },
+
+                        async applyFilters() {
+                              this.showFilterModal = false;
+                              await this.fetchMedia();
+                        }
+                  };
+            }
+      </script>
+</body>
+
+</html>
